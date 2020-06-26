@@ -1,0 +1,1 @@
+# moz-offgrid-data
