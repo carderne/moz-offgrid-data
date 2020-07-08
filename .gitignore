@@ -1,4 +1,9 @@
-data/
+*.tif
+*.gpkg
+*.gpkg-shm
+*.gpkg-wal
+*.o5m
 *.qgz
+data/*/
 
 .ipynb_checkpoints/
