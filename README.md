@@ -20,9 +20,9 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 | OpenStreetMap | [OpenStreetMap](https://download.geofabrik.de/africa.html) | Open Data Commons Open Database License |
 | OpenStreetMap | [HOT Feature Exports](https://data.humdata.org/search?organization=hot&q=mozambique) | Open Database License (ODC-ODbL) |
 | Settlements | [UN IOM Mozambique settlements](https://data.humdata.org/dataset/mozambique-settlement-shapefiles) | Non-commercial, no redistribute |
+| Settlements | [OCHA Main Cities](https://data.humdata.org/dataset/mozambique-main-cities) |  	Creative Commons Attribution International |
 | Health | [OCHA Health Facilities](https://data.humdata.org/dataset/mozambique-health-facilities) | Public domain |
 | Energy | [OCHA Energy Facilities](https://data.humdata.org/dataset/mozambique-energy-facilities) | Creative Commons Attribution International |
-| Settlements | [OCHA Main Cities](https://data.humdata.org/dataset/mozambique-main-cities) |  	Creative Commons Attribution International |
 | Rivers | [OCHA Stream Network](https://data.humdata.org/dataset/mozambique-rivers-and-stream-network) | Creative Commons Attribution International |
 | Admin boundaries | [OCHA Admin Boundaries](https://data.humdata.org/dataset/mozambique-administrative-levels-0-3) | humanitarian use only |
 
@@ -52,15 +52,15 @@ Results in ~29,000 clusters (vs ~7000 for USAID RtM).
 - [x] Posto (admin 3)
 - [x] Village name (or name of containing Posto)
 - [x] Latitude and longitude
-- [ ] Nearest city
-- [ ] Distance to nearest city [km]
+- [x] Nearest city
+- [x] Straight line distance to nearest city [km]
 - [x] Travel time to nearest city [hours]
 - [x] Population (from HRSL/Worldpop)
-- [ ] Households (population divided by house size)
+- [x] Households (population divided by house size)
 - [x] Area [km2]
-- [ ] Population density [people/km2]
-- [ ] Urban type (rural, small village...)
-- [x] Grid distance (to gridfinder/official) [km]
+- [x] Population density [people/km2]
+- [x] Urban type
+- [ ] Grid distance (to gridfinder/official) [km]
 - [ ] Electricity access (how calculated?)
 - [ ] Poverty rate
 - [ ] Markets
@@ -118,3 +118,48 @@ Urban codes are as follows:
 2. Rasterize grid data. Burn value: 1. Size units: georeferenced. Width/height: ??. Output extent: from clusters layer.
 3. Raster proximity. Target values: 1. Distance units: georeferenced.
 4. Zonal statistics to get values from raster into clusters geometry.
+
+### Add distance to cities
+Using [this Wikipedia article](https://en.wikipedia.org/wiki/List_of_cities_in_Mozambique_by_population) with the following list of the 17 largest cities in Mozambique:
+- Matola
+- Maputo
+- Nampula
+- Beira
+- Chimoio
+- Quelimane
+- Tete
+- Nacala
+- Lichinga
+- Pemba
+- Mocuba
+- Gurúè
+- Xai-Xai
+- Maxixe
+- Angoche
+- Inhambane
+- Cuamba
+
+With the OCHA Main Cities dataset, use the following filter query in QGIS to get the selected cities:
+```
+"TOPONIMO" IN ('Cidade da Matola', 'Maputo', 'Nampula', 'Beira', 'Chimoio',
+    'Quelimane', 'Tete', 'Cidade de Nacala', 'Lichinga', 'Pemba', 'Mocuba',
+    'Gurué', 'Xai-Xai', 'Maxixe', 'Angoche', 'Inhambane', 'Cuamba')
+```
+
+Then use Voronoi polygons (buffer at least 30%) and Join by location (as for village names) to get nearest city for each cluster.
+
+Then for distance:
+1. Re-export filtered 17 cities as separate file.
+1. Ensure filtered cities and clusters are in the same CRS (coordinate reference system).
+2. Rasterize cities data. Burn value: 1. Size units: georeferenced. Width/height: 0.1 (degrees). Output extent: from clusters layer.
+3. Raster proximity. Target values: 1. Distance units: georeferenced.
+4. Zonal statistics to get Minimum value from distance raster into clusters geometry.
+5. Create new column and multiply by 100 to get from degrees to km and convert to integer.
+
+### Number of households and population density
+For this we assume average household size is 5. SO number of households is a new column with `population / 5` (and kept as integer).
+
+Population density is `population / area` (also integer).
+
+### Get latitude and longitude
+Use Centroids tools to convert clusters to points. Then in Attribute table, create new columns `lat` and `long`, as real numbers, with `$y` and `$x` as the formulae, respectively. Then use Join attributes by location to add the `lat` and `long` fields to the clusters.
