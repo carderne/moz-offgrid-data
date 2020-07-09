@@ -6,7 +6,8 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 | ---- | ------ | ------- |
 | Population | [Facebook HRSL](https://data.humdata.org/dataset/mozambique-high-resolution-population-density) | Creative Commons Attribution International |
 | Population | [Worldpop](https://www.worldpop.org/geodata/summary?id=6404) | Creative Commons Attribution 4.0 International |
-| Population | [GHSL](https://ghsl.jrc.ec.europa.eu/download.php) | Creative Commons Attribution 4.0 International |
+| Population | [GHS-POP](https://ghsl.jrc.ec.europa.eu/download.php?ds=pop) | Creative Commons Attribution 4.0 International |
+| Urban degree | [GHS-SMOD](https://ghsl.jrc.ec.europa.eu/download.php?ds=smod) | Creative Commons Attribution 4.0 International |
 | Grid | [gridfinder](https://zenodo.org/record/3628142) | Creative Commons Attribution 4.0 International |
 | Grid | [Transmission network](https://energydata.info/dataset/mozambique-electricity-transmission-network-2017) | Creative Commons Attribution 4.0 |
 | Distance to cities | [JRC Global Accessibility Map](https://forobs.jrc.ec.europa.eu/products/gam/download.php) | Not specified - but most EU data is CC BY 4.0 |
@@ -17,7 +18,7 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 | Night time lights | [NOAA VIIRS](https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_MONTHLY_V1_VCMCFG) | No copyright |
 | Hydropower resources | [African Small Hydro Potential](https://energydata.info/dataset/small-and-mini-hydropower-potential-in-sub-saharan-africa) | Creative Commons Attribution 4.0 |
 | OpenStreetMap | [OpenStreetMap](https://download.geofabrik.de/africa.html) | Open Data Commons Open Database License |
-| OpenStreetMap | [HOT Feature Exports](https://data.humdata.org/search?organization=hot&q=mozambique&ext_page_size=25&sort=score%20desc%2C%20if(gt(last_modified%2Creview_date)%2Clast_modified%2Creview_date)%20desc) | Open Database License (ODC-ODbL) |
+| OpenStreetMap | [HOT Feature Exports](https://data.humdata.org/search?organization=hot&q=mozambique) | Open Database License (ODC-ODbL) |
 | Settlements | [UN IOM Mozambique settlements](https://data.humdata.org/dataset/mozambique-settlement-shapefiles) | Non-commercial, no redistribute |
 | Health | [OCHA Health Facilities](https://data.humdata.org/dataset/mozambique-health-facilities) | Public domain |
 | Energy | [OCHA Energy Facilities](https://data.humdata.org/dataset/mozambique-energy-facilities) | Creative Commons Attribution International |
@@ -46,35 +47,71 @@ Then in QGIS:
 Results in ~29,000 clusters (vs ~7000 for USAID RtM).
 
 ### Attributes to add to clusters
-- [ ] Village name (or name of containing posto)
-- [ ] Province
-- [ ] lat/lng
-- [ ] posto (and poso ID?)
-- [ ] district
-- [ ] nearest city
-- [ ] km to city
-- [ ] population
-- [ ] households
-- [ ] area (km2)
-- [ ] pop density
-- [ ] urban type (rural, small village...)
-- [ ] elec access (how calculated?)
-- [ ] povert rate
-- [ ] market?
-- [ ] schools
-- [ ] health sites
-- [ ] grid distance
-- [ ] NDVI
-- [ ] HRSL (already in pop)
-- [ ] road network access
-- [ ] emissions (NO2)
-- [ ] NTL
-- [ ] GDP
+- [x] Province (admin 1)
+- [x] District (admin 2)
+- [x] Posto (admin 3)
+- [x] Village name (or name of containing Posto)
+- [x] Latitude and longitude
+- [ ] Nearest city
+- [ ] Distance to nearest city [km]
+- [x] Travel time to nearest city [hours]
+- [x] Population (from HRSL/Worldpop)
+- [ ] Households (population divided by house size)
+- [x] Area [km2]
+- [ ] Population density [people/km2]
+- [ ] Urban type (rural, small village...)
+- [x] Grid distance (to gridfinder/official) [km]
+- [ ] Electricity access (how calculated?)
+- [ ] Poverty rate
+- [ ] Markets
+- [ ] Schools
+- [ ] Health sites
+- [ ] NDVI (vegetation indicator, from Sentinel-2)
+- [ ] Road network access
+- [ ] Emissions (from Sentinel-5P NO2)
+- [x] Night-time lights (from VIIRS)
+- [x] GDP (sum of GDP in cluster) [million USD]
+- [ ] Telecom towers (don't have a source, RTM says FUNAE)
 
-### Add features to clusters
+### Add base features to clusters
 Configuration file is in `./clusters/features.yml`.
 
 Then run: `~/Code/clusterize/run.py feat --config ./clusters/features.yml ./clusters/clusters-proc.gpkg ./clusters/clusters-feat.gpkg`
+
+### Add area to clusters
+In QGIS:
+1. Open attribute table
+2. Delete any existing "area" column
+3. Use new column calculator to create new column "area", type float, precision 1, with formula: `$area / 1e6`.
+
+### Add admin levels
+Using OCHA data admin 3 data. Use QGIS "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records.
+
+Fields to include:
+- ADM1_PT
+- ADM2_PT
+- ADM3_PT
+
+### Add village names
+Using IOM settlements data. In QGIS use "Voronoi polygons" with settlements, 10% buffer.
+
+Then with clusters, "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records. Choose "Sett_Name" field.
+
+### Urban level
+Use QGIS Raster -> Merge to merge/mosaic four tiles covering Mozambique.
+
+Warp/reproject to EPSG:4326 (nearest neighbour, nodata 0).
+
+Use Zonal statistics with clusters layer, calculate majority/mode of raster value.
+
+Urban codes are as follows:
+11: Mostly uninhabited
+12: Rural, dispersed area
+13: Village
+21: Suburbs
+22: Semi-dense town
+23: Dense town
+30: City
 
 ### Calculate grid distance of each cluster with QGIS
 1. Ensure grid data and clusters are in the same CRS (coordinate reference system).
