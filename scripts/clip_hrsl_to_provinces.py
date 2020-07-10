@@ -8,7 +8,7 @@ hrsl = "data/hrsl/hrsl_moz_pop_deflate.tif"
 
 with rio.open(hrsl) as ds:
     prof = ds.profile.copy()
-    
+
 aoi = gpd.read_file("data/gadm/gadm36_MOZ.gpkg", layer="gadm36_MOZ_1")
 
 for idx, row in aoi.iterrows():

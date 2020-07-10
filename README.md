@@ -77,13 +77,13 @@ Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. 
 - [x] Latitude and longitude
 - [x] Nearest city
 - [x] Straight line distance to nearest city [km]
-- [x] Travel time to nearest city [hours]
+- [x] Travel time to nearest city [hours] **still need to divide by 60 and keep as float**
 - [x] Population (from HRSL/Worldpop)
 - [x] Households (population divided by house size)
 - [x] Area [km2]
 - [x] Population density [people/km2]
 - [x] Urban type
-- [x] Grid distance (to gridfinder/official) [km]
+- [x] Grid distance (to gridfinder/official) [km] **had to divide by 100 and keep as float**
 - [x] Electricity access (grid distance below 1km)
 - [ ] Poverty rate
 - [ ] Markets
@@ -93,7 +93,7 @@ Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. 
 - [ ] Road network access
 - [ ] Emissions (from Sentinel-5P NO2)
 - [x] Night-time lights (from VIIRS)
-- [x] GDP (sum of GDP in cluster) [million USD]
+- [x] GDP (sum of GDP in cluster) [million USD] **not sure about units, seems like clusterize scale factor not working**
 - [ ] Telecom towers (don't have a source, RTM says FUNAE)
 
 ### Add base features to clusters
@@ -185,7 +185,7 @@ For this we assume average household size is 5. SO number of households is a new
 Population density is `population / area` (also integer).
 
 ### Get latitude and longitude
-Use Centroids tools to convert clusters to points. Then in Attribute table, create new columns `lat` and `long`, as real numbers, with `$y` and `$x` as the formulae, respectively. Then use Join attributes by location to add the `lat` and `long` fields to the clusters.
+Use Centroids tools to convert clusters to points. Then in Attribute table, create new columns `lat` and `lng`, as real numbers, with `$y` and `$x` as the formulae, respectively. Then use Join attributes by location to add the `lat` and `lng` fields to the clusters.
 
 ### Electrified status
 Assuming within 1km is electrified. Open Attribute table and add an integer column `electrified` with the following formula:
