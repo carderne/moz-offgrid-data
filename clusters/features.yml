@@ -22,7 +22,7 @@
     no_value: median
 - name: gdp
   type: raster
-  file: ./data/GDP.tif
+  file: ./data/gdp/GDP.tif
   operation: sum
   decimals: 0
   fix:
@@ -37,4 +37,4 @@
   file: ./data/gridfinder_moz.gpkg
   decimals: 2
   fix:
-    factor: 1/1000
+    factor: 1/10

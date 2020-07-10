@@ -29,6 +29,27 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 ## Processing
 Scripts are in `/scripts`.
 
+### Extracting OSM features
+
+[Schools](https://wiki.openstreetmap.org/wiki/Education_features)
+```
+osmfilter moz.o5m --keep="amenity=school" | \
+    ogr2ogr -f GPKG osm-schools.gpkg /vsistdin/ multipolygons points
+```
+
+Then use the script to merge the polygons and points into a single later:
+```
+./scripts/merge_centroids.py data/osm/osm-schools.gpkg data/osm/osm-schools.gpkg
+```
+
+[Health facilities](https://wiki.openstreetmap.org/wiki/Key:healthcare)
+```
+osmfilter moz.o5m --keep="healthcare=*" | \
+    ogr2ogr -f GPKG osm-health.gpkg /vsistdin/ multipolygons points
+```
+Based on examination, the OCHA health site data is much more complete, and includes most of the OSM sites, so the OSM data will not be used for health sites.
+
+
 ### Preparing clusters
 With HRSL, first clip HRSL to separate provinces (this let's us use different parameters for clusters in each area). Use `clip_hrsl_to_provinces.py`.
 
@@ -46,6 +67,8 @@ Then in QGIS:
 
 Results in ~29,000 clusters (vs ~7000 for USAID RtM).
 
+Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. May be necessary to re-export with GeoPandas and/or delete the CRS line (since GeoJSON is always WGS84). What about right-hand rule?
+
 ### Attributes to add to clusters
 - [x] Province (admin 1)
 - [x] District (admin 2)
@@ -60,12 +83,12 @@ Results in ~29,000 clusters (vs ~7000 for USAID RtM).
 - [x] Area [km2]
 - [x] Population density [people/km2]
 - [x] Urban type
-- [ ] Grid distance (to gridfinder/official) [km]
-- [ ] Electricity access (how calculated?)
+- [x] Grid distance (to gridfinder/official) [km]
+- [x] Electricity access (grid distance below 1km)
 - [ ] Poverty rate
 - [ ] Markets
-- [ ] Schools
-- [ ] Health sites
+- [x] Schools
+- [x] Health sites
 - [ ] NDVI (vegetation indicator, from Sentinel-2)
 - [ ] Road network access
 - [ ] Emissions (from Sentinel-5P NO2)
@@ -163,3 +186,12 @@ Population density is `population / area` (also integer).
 
 ### Get latitude and longitude
 Use Centroids tools to convert clusters to points. Then in Attribute table, create new columns `lat` and `long`, as real numbers, with `$y` and `$x` as the formulae, respectively. Then use Join attributes by location to add the `lat` and `long` fields to the clusters.
+
+### Electrified status
+Assuming within 1km is electrified. Open Attribute table and add an integer column `electrified` with the following formula:
+```
+CASE WHEN "gridfinder" <= 1 THEN 1 ELSE 0 END
+```
+
+### Health facilities and school
+Use QGIS "Count points in polygons" for each layer.
