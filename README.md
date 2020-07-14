@@ -89,15 +89,14 @@ Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. 
 - [x] Urban type
 - [x] Grid distance (to gridfinder/official) [km] **had to divide by 100 and keep as float**
 - [x] Electricity access (grid distance below 1km)
-- [ ] Poverty rate
-- [ ] Markets
 - [x] Schools
 - [x] Health sites
-- [ ] NDVI (vegetation indicator, from Sentinel-2)
-- [ ] Road network access
-- [ ] Emissions (from Sentinel-5P NO2)
+- [x] NDVI (vegetation indicator, from Sentinel-2)
+- [x] Emissions (from Sentinel-5P NO2)
 - [x] Night-time lights (from VIIRS)
 - [x] GDP (sum of GDP in cluster) [million USD] **not sure about units, seems like clusterize scale factor not working**
+- [ ] Poverty rate
+- [ ] Markets
 - [ ] Telecom towers (don't have a source, RTM says FUNAE)
 
 ### Add base features to clusters
@@ -199,3 +198,15 @@ CASE WHEN "gridfinder" <= 1 THEN 1 ELSE 0 END
 
 ### Health facilities and school
 Use QGIS "Count points in polygons" for each layer.
+
+### Agriculture
+A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
+
+Script `download_ndvi.py` will download a timeseries of NDVI data. Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
+
+Currently just using 3rd component (counting from 1) of Fourier transform. Use `Zonal statistics` to get mean value into clusters. Multiply by 100.
+
+### Emissions
+Script `download_no2.py` will download a single maximum annual value of NO2 for Mozambique.
+
+Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.

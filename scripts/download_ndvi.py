@@ -18,9 +18,9 @@ loc = "moz"
 # xmin, ymin, xmax, ymax
 roi = ee.Geometry.Rectangle([28, -28, 43, -9])  # Mozambique
 
-start = ee.Date.fromYMD(2019, 1, 1)
-months = ee.List.sequence(0, 11)
-startDates = months.map(lambda d: start.advance(d, "month"))
+start = ee.Date.fromYMD(2019, 7, 9)
+weeks = ee.List.sequence(0, 26)
+startDates = weeks.map(lambda d: start.advance(d, "week"))
 
 
 def get_ndvi(img):
@@ -29,7 +29,7 @@ def get_ndvi(img):
 
 def monthmap(m):
     start = ee.Date(m)
-    end = start.advance(1, "month")
+    end = start.advance(1, "week")
     return (
         ee.ImageCollection("COPERNICUS/S2_SR")
         .filterBounds(roi)
