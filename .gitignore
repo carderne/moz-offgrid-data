@@ -4,6 +4,7 @@
 *.gpkg-wal
 *.o5m
 *.qgz
+*.pickle
 data/*/
 
 .ipynb_checkpoints/

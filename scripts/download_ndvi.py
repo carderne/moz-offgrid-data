@@ -18,8 +18,8 @@ loc = "moz"
 # xmin, ymin, xmax, ymax
 roi = ee.Geometry.Rectangle([28, -28, 43, -9])  # Mozambique
 
-start = ee.Date.fromYMD(2019, 7, 9)
-weeks = ee.List.sequence(0, 26)
+start = ee.Date.fromYMD(2019, 1, 1)
+weeks = ee.List.sequence(0, 51)
 startDates = weeks.map(lambda d: start.advance(d, "week"))
 
 
