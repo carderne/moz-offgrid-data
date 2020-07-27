@@ -29,6 +29,7 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 | Energy | [OCHA Energy Facilities](https://data.humdata.org/dataset/mozambique-energy-facilities) | Creative Commons Attribution International |
 | Rivers | [OCHA Stream Network](https://data.humdata.org/dataset/mozambique-rivers-and-stream-network) | Creative Commons Attribution International |
 | Poverty | [OPHI Poverty Rate](https://data.humdata.org/dataset/mozambique-poverty-rate) |  	Creative Commons Attribution International |
+| Affordability | [USAID Power Africa surveys]() | |
 | Admin boundaries | [OCHA Admin Boundaries](https://data.humdata.org/dataset/mozambique-administrative-levels-0-3) | humanitarian use only |
 
 ## Processing
@@ -200,7 +201,7 @@ CASE WHEN "gridfinder" <= 1 THEN 1 ELSE 0 END
 ```
 
 ### Health facilities and school
-Use QGIS "Count points in polygons" for each layer.
+Use QGIS "Count points in polygons" for each layer. OCHA for health sites and OSM for schools.
 
 ### Agriculture
 A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
@@ -213,3 +214,29 @@ Currently just using 3rd component (counting from 1) of Fourier transform. Use `
 Script `download_no2.py` will download a single maximum annual value of NO2 for Mozambique.
 
 Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
+
+## Province, district, posto aggregates
+### Attributes to add
+These need to be added separately to province, district and posto layers. Use OCHA layers as base.
+
+- [x] Population: calculate from latest WorldPop
+- [x] Households: divide above by 5
+- [x] Area: calculate in QGIS
+- [x] Electricity access: from USAID and official numbers
+- [x] Poverty rate: from OPHI data
+- [x] Schools: count sites in QGIS
+- [x] Health site: count in QGIS
+
+### Population and households
+Use Zonal statistics with Worldpop, then convert to integer. For households, divide by 5 then convert to integer.
+
+### Area
+In field calculator, use `$area / 1e6` as integer.
+
+### Schools and health sites
+OCHA for health and OSM for schools. Use QGIS `Count points in polygon`.
+
+### Poverty and electricity access
+Manually enter into ADM1 layer. Use OPHI's MPI (Multidimensional Poverty Index) for poverty.
+
+Then use QGIS `Join attributes by field value` on `ADM1_PCODE` to get into districts and postos.
