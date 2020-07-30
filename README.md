@@ -57,6 +57,11 @@ osmfilter moz.o5m --keep="healthcare=*" | \
 ```
 Based on examination, the OCHA health site data is much more complete, and includes most of the OSM sites, so the OSM data will not be used for health sites.
 
+Grid lines:
+```
+osmfilter moz.o5m --keep="power=line" | ogr2ogr -f GPKG osm-grid.gpkg /vsistdin/ lines
+```
+
 
 ### Preparing clusters
 With HRSL, first clip HRSL to separate provinces (this let's us use different parameters for clusters in each area). Use `clip_hrsl_to_provinces.py`.
