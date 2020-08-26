@@ -62,6 +62,22 @@ Grid lines:
 osmfilter moz.o5m --keep="power=line" | ogr2ogr -f GPKG osm-grid.gpkg /vsistdin/ lines
 ```
 
+### Manual cluster preparation
+
+First prepare the HRSL data:
+```
+~/Code/clusterize/run.py prep --res=0.001 --min_val=1 hrsl_moz_pop_deflate.tif hrsl_prep.tif
+```
+
+QGIS:
+1. Polygonize
+2. Fix geometries
+3. Add area column $area
+4. Filter area > 12500
+5. Buffer 0.005
+6. Fix
+7. Dissolve
+8. Multipart to singlepart
 
 ### Preparing clusters
 With HRSL, first clip HRSL to separate provinces (this let's us use different parameters for clusters in each area). Use `clip_hrsl_to_provinces.py`.
@@ -88,7 +104,7 @@ Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. 
 - [x] Posto (admin 3)
 - [x] Village name (or name of containing Posto)
 - [x] Latitude and longitude
-- [x] Nearest city
+- [x] Nearest city  **redo, all sorts of names present outside of 17 selected**
 - [x] Straight line distance to nearest city [km]
 - [x] Travel time to nearest city [hours] **still need to divide by 60 and keep as float**
 - [x] Population (from HRSL/Worldpop)
@@ -245,3 +261,13 @@ OCHA for health and OSM for schools. Use QGIS `Count points in polygon`.
 Manually enter into ADM1 layer. Use OPHI's MPI (Multidimensional Poverty Index) for poverty.
 
 Then use QGIS `Join attributes by field value` on `ADM1_PCODE` to get into districts and postos.
+
+# TODO
+- Add GHI, demand, score for each cluster
+- Pre-filter clusters to  pop>100
+- Rerun gridfinder
+- Try manual clustering approach
+- Fix auto-adding features to clusters
+- Add pop-density filter to webmap
+- Don't round area too much! At least two decimal places. Creates weird pop density artefacts.
+- Exclude HV from proximity. Exclude gridfinder? Show separately??
