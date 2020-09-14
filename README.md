@@ -105,33 +105,33 @@ The command below runs a script that does the following steps, which can also be
 ```
 
 ### Attributes to add to clusters
-| Attribute              | Name      | Source           | Comments |
-| ---------              | ----      | ------           | -------- |
-| Province               | adm1      | OCHA             | |
-| District               | adm2      | OCHA             | |
-| Posto                  | adm3      | OCHA             | |
-| Village                | village   | IOM Settlements  | |
-| Latitude               | lat       |                  | |
-| Longitude              | lon       |                  | |
-| Area                   | area      |                  | |
-| Population             | pop       | HRSL             | |
-| Households             | hh        | HRSL             | |
-| Population density     | popd      | HRSL             | |
-| Urban type             | urban     | GHSL SMOD        | |
-| Nearest city           | city      | OCHA Main Cities | redo, all sorts of names present outside of 17 selected |
-| Nearest city distance  | cityd     | OCHA Main Cities | |
-| Travel time to city    | travel    | JRC              | still need to divide by 60 and keep as float |
-| Health facilities      | health    | OCHA             | |
-| Schools                | schools   | OSM              | |
-| Grid distance          | grid      | gridfinder/OSM   | had to divide by 100 and keep as float |
-| Electricity access     | elec      | gridfinder/OSM   | |
-| Agricultural indicator | agri      | NDVI             | |
-| Emissions              | emissions | NO2              | |
-| NTL                    | ntl       | VIIRS            | |
-| GDP                    | gdp       | UNEP             | not sure about units, seems like clusterize scale factor not working |
-| Poverty rate           | poverty   |                  | |
-| Markets                | markets   |                  | |
-| Telecom towers         | telecom   |                  | no source, RTM says FUNAE |
+| Attribute              | Name      | Unit    | Source           | Comments |
+| ---------              | ----      | ----    | ------           | -------- |
+| Province               | adm1      |         | OCHA             | |
+| District               | adm2      |         | OCHA             | |
+| Posto                  | adm3      |         | OCHA             | |
+| Village                | village   |         | IOM Settlements  | |
+| Latitude               | lat       | deg     |                  | |
+| Longitude              | lon       | deg     |                  | |
+| Area                   | area      | km2     |                  | |
+| Population             | pop       |         | HRSL             | |
+| Households             | hh        |         | HRSL             | |
+| Population density     | popd      | pop/km2 | HRSL             | |
+| Urban type             | urban     |         | GHSL SMOD        | |
+| Nearest city           | city      |         | OCHA Main Cities | redo, all sorts of names present outside of 17 selected |
+| Nearest city distance  | cityd     | km      | OCHA Main Cities | |
+| Travel time to city    | travel    | hours   | JRC              | still need to divide by 60 and keep as float |
+| Health facilities      | health    |         | OCHA             | |
+| Schools                | schools   |         | OSM              | |
+| Grid distance          | grid      | km      | gridfinder/OSM   | had to divide by 100 and keep as float |
+| Electricity access     | elec      |         | gridfinder/OSM   | |
+| Agricultural indicator | agri      |         | NDVI             | |
+| Emissions              | emissions |         | NO2              | |
+| NTL                    | ntl       |         | VIIRS            | |
+| GDP                    | gdp       | USD/cap | UNEP             | not sure about units, seems like clusterize scale factor not working |
+| Poverty rate           | poverty   |         |                  | |
+| Markets                | markets   |         |                  | |
+| Telecom towers         | telecom   |         |                  | no source, RTM says FUNAE |
 
 
 ### Add attributes
