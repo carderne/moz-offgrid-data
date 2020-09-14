@@ -11,7 +11,7 @@ import rasterio as rio
 from rasterio.features import shapes
 from shapely import geometry
 
-root = outfile = Path(__file__).parents[1]
+root = Path(__file__).parents[1]
 hrsl_in = root / "data/hrsl/hrsl_moz_pop_deflate.tif"
 hrsl_prep = root / "data/hrsl/hrsl_prep.tif"
 clu_out = root / "clusters/clu-man.gpkg"

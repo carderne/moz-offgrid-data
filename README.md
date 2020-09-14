@@ -32,7 +32,7 @@ Overview of data sources and methods for Mozambique Off-Grid data analysis.
 | Affordability | [USAID Power Africa surveys]() | |
 | Admin boundaries | [OCHA Admin Boundaries](https://data.humdata.org/dataset/mozambique-administrative-levels-0-3) | humanitarian use only |
 
-## Processing
+## Pre-processing data
 Scripts are in `/scripts`.
 
 Google Earth Engine scripts are in [this EE repo](https://code.earthengine.google.com/?accept_repo=users/carderne/giz) (not currently publicly accessible).
@@ -62,98 +62,12 @@ Grid lines:
 osmfilter moz.o5m --keep="power=line" | ogr2ogr -f GPKG osm-grid.gpkg /vsistdin/ lines
 ```
 
-### Manual cluster preparation
-
-First prepare the HRSL data:
-```
-~/Code/clusterize/run.py prep --res=0.001 --min_val=1 hrsl_moz_pop_deflate.tif hrsl_prep.tif
-```
-
-QGIS:
-1. Polygonize
-2. Fix geometries
-3. Add area column $area
-4. Filter area > 12500
-5. Buffer 0.005
-6. Fix
-7. Dissolve
-8. Multipart to singlepart
-
-### Preparing clusters
-With HRSL, first clip HRSL to separate provinces (this let's us use different parameters for clusters in each area). Use `clip_hrsl_to_provinces.py`.
-
-Then use `hrsl_prep.sh`, followed by `hrsl_make_settlements.sh`. Both of these depend on the [clusterize](https://github.com/carderne/clusterize) library.
-
-Then `merge_clusters.py` to combine the clusters into one national file.
-
-Then in QGIS:
-1. Convex hulls
-2. Dissolve
-3. Multiparts to singleparts
-4. Delete all data fields and add area column: $area
-5. Filter to only inclea area > 60000
-6. Save!
-
-Results in ~29,000 clusters (vs ~7000 for USAID RtM).
-
-Ultimately, clusters are exported from QGIS as GeoJSON for uploading to Mapbox. May be necessary to re-export with GeoPandas and/or delete the CRS line (since GeoJSON is always WGS84). What about right-hand rule?
-
-### Attributes to add to clusters
-- [x] Province (admin 1)
-- [x] District (admin 2)
-- [x] Posto (admin 3)
-- [x] Village name (or name of containing Posto)
-- [x] Latitude and longitude
-- [x] Nearest city  **redo, all sorts of names present outside of 17 selected**
-- [x] Straight line distance to nearest city [km]
-- [x] Travel time to nearest city [hours] **still need to divide by 60 and keep as float**
-- [x] Population (from HRSL/Worldpop)
-- [x] Households (population divided by house size)
-- [x] Area [km2]
-- [x] Population density [people/km2]
-- [x] Urban type
-- [x] Grid distance (to gridfinder/official) [km] **had to divide by 100 and keep as float**
-- [x] Electricity access (grid distance below 1km)
-- [x] Schools
-- [x] Health sites
-- [x] NDVI (vegetation indicator, from Sentinel-2)
-- [x] Emissions (from Sentinel-5P NO2)
-- [x] Night-time lights (from VIIRS)
-- [x] GDP (sum of GDP in cluster) [million USD] **not sure about units, seems like clusterize scale factor not working**
-- [ ] Poverty rate
-- [ ] Markets
-- [ ] Telecom towers (don't have a source, RTM says FUNAE)
-
-### Add base features to clusters
-Configuration file is in `./clusters/features.yml`.
-
-Then run: `~/Code/clusterize/run.py feat --config ./clusters/features.yml ./clusters/clusters-proc.gpkg ./clusters/clusters-feat.gpkg`
-
-### Add area to clusters
-In QGIS:
-1. Open attribute table
-2. Delete any existing "area" column
-3. Use new column calculator to create new column "area", type float, precision 1, with formula: `$area / 1e6`.
-
-### Add admin levels
-Using OCHA data admin 3 data. Use QGIS "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records.
-
-Fields to include:
-- ADM1_PT
-- ADM2_PT
-- ADM3_PT
-
-### Add village names
-Using IOM settlements data. In QGIS use "Voronoi polygons" with settlements, 10% buffer.
-
-Then with clusters, "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records. Choose "Sett_Name" field.
-
 ### Urban level
+GHSL SMOD
+
 Use QGIS Raster -> Merge to merge/mosaic four tiles covering Mozambique.
 
 Warp/reproject to EPSG:4326 (nearest neighbour, nodata 0).
-
-Use Zonal statistics with clusters layer, calculate majority/mode of raster value.
 
 Urban codes are as follows:
 11: Mostly uninhabited
@@ -164,31 +78,81 @@ Urban codes are as follows:
 23: Dense town
 30: City
 
-### Calculate grid distance of each cluster with QGIS
-1. Ensure grid data and clusters are in the same CRS (coordinate reference system).
-2. Rasterize grid data. Burn value: 1. Size units: georeferenced. Width/height: ??. Output extent: from clusters layer.
-3. Raster proximity. Target values: 1. Distance units: georeferenced.
-4. Zonal statistics to get values from raster into clusters geometry.
+### Agriculture
+A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
+
+Script `download_ndvi.py` will download a timeseries of NDVI data. Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
+
+Currently just using 3rd component (counting from 1) of Fourier transform. Use `Zonal statistics` to get mean value into clusters. Multiply by 100.
+
+### Emissions
+Script `download_no2.py` will download a single maximum annual value of NO2 for Mozambique.
+
+Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
+
+## Clusters
+### Creating clusters
+The command below runs a script that does the following steps, which can also be run in QGIS:
+1. Resample to 0.001 degrees and drop pixels below a threshold
+2. Polygonize then fix geometries
+3. Add area column $area, and filter area > 13000
+4. Buffer 0.005, then fix geometries
+5. Dissolve
+6. Multipart to singlepart
+
+```bash
+./scripts/make_clusters_manual.py
+```
+
+### Attributes to add to clusters
+| Attribute              | Name      | Source           | Comments |
+| ---------              | ----      | ------           | -------- |
+| Province               | adm1      | OCHA             | |
+| District               | adm2      | OCHA             | |
+| Posto                  | adm3      | OCHA             | |
+| Village                | village   | IOM Settlements  | |
+| Latitude               | lat       |                  | |
+| Longitude              | lon       |                  | |
+| Area                   | area      |                  | |
+| Population             | pop       | HRSL             | |
+| Households             | hh        | HRSL             | |
+| Population density     | popd      | HRSL             | |
+| Urban type             | urban     | GHSL SMOD        | |
+| Nearest city           | city      | OCHA Main Cities | redo, all sorts of names present outside of 17 selected |
+| Nearest city distance  | cityd     | OCHA Main Cities | |
+| Travel time to city    | travel    | JRC              | still need to divide by 60 and keep as float |
+| Health facilities      | health    | OCHA             | |
+| Schools                | schools   | OSM              | |
+| Grid distance          | grid      | gridfinder/OSM   | had to divide by 100 and keep as float |
+| Electricity access     | elec      | gridfinder/OSM   | |
+| Agricultural indicator | agri      | NDVI             | |
+| Emissions              | emissions | NO2              | |
+| NTL                    | ntl       | VIIRS            | |
+| GDP                    | gdp       | UNEP             | not sure about units, seems like clusterize scale factor not working |
+| Poverty rate           | poverty   |                  | |
+| Markets                | markets   |                  | |
+| Telecom towers         | telecom   |                  | no source, RTM says FUNAE |
+
+
+### Add attributes
+Run this script:
+```bash
+./scripts/cluster_features.py all
+```
+
+Can also run with names of features to add instead of all, e.g.:
+```bash
+./scripts/cluster_features.py pop,ntl
+```
+
+### Add village names
+Using IOM settlements data. In QGIS use "Voronoi polygons" with settlements, 10% buffer.
+
+Then with clusters, "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records. Choose "Sett_Name" field.
+
 
 ### Add distance to cities
 Using [this Wikipedia article](https://en.wikipedia.org/wiki/List_of_cities_in_Mozambique_by_population) with the following list of the 17 largest cities in Mozambique:
-- Matola
-- Maputo
-- Nampula
-- Beira
-- Chimoio
-- Quelimane
-- Tete
-- Nacala
-- Lichinga
-- Pemba
-- Mocuba
-- Gurúè
-- Xai-Xai
-- Maxixe
-- Angoche
-- Inhambane
-- Cuamba
 
 With the OCHA Main Cities dataset, use the following filter query in QGIS to get the selected cities:
 ```
@@ -206,35 +170,6 @@ Then for distance:
 3. Raster proximity. Target values: 1. Distance units: georeferenced.
 4. Zonal statistics to get Minimum value from distance raster into clusters geometry.
 5. Create new column and multiply by 100 to get from degrees to km and convert to integer.
-
-### Number of households and population density
-For this we assume average household size is 5. SO number of households is a new column with `population / 5` (and kept as integer).
-
-Population density is `population / area` (also integer).
-
-### Get latitude and longitude
-Use Centroids tools to convert clusters to points. Then in Attribute table, create new columns `lat` and `lng`, as real numbers, with `$y` and `$x` as the formulae, respectively. Then use Join attributes by location to add the `lat` and `lng` fields to the clusters.
-
-### Electrified status
-Assuming within 1km is electrified. Open Attribute table and add an integer column `electrified` with the following formula:
-```
-CASE WHEN "gridfinder" <= 1 THEN 1 ELSE 0 END
-```
-
-### Health facilities and school
-Use QGIS "Count points in polygons" for each layer. OCHA for health sites and OSM for schools.
-
-### Agriculture
-A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
-
-Script `download_ndvi.py` will download a timeseries of NDVI data. Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
-
-Currently just using 3rd component (counting from 1) of Fourier transform. Use `Zonal statistics` to get mean value into clusters. Multiply by 100.
-
-### Emissions
-Script `download_no2.py` will download a single maximum annual value of NO2 for Mozambique.
-
-Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
 
 ## Province, district, posto aggregates
 ### Attributes to add
