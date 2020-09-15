@@ -4,6 +4,7 @@
 
 from pathlib import Path
 import warnings
+import sys
 
 import pandas as pd
 import geopandas as gpd
@@ -11,7 +12,6 @@ import rasterio as rio
 from rasterio.features import rasterize
 from rasterstats import zonal_stats
 from scipy import ndimage
-import click
 
 root = Path(__file__).resolve().parents[1]
 data = root / "data"
@@ -182,8 +182,6 @@ def emissions(clu):
     return clu
 
 
-@click.command()
-@click.argument("which")
 def main(which):
     clu_file = root / "clusters/clu-man-feat.gpkg"
     clu = gpd.read_file(clu_file)
@@ -215,4 +213,5 @@ def main(which):
 
 
 if __name__ == "__main__":
-    main()
+    which = sys.argv[1]
+    main(which)
