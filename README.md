@@ -90,6 +90,34 @@ Script `download_no2.py` will download a single maximum annual value of NO2 for 
 
 Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
 
+## Administrative layers
+### Attributes to add
+
+| Attribute              | Name      | Unit    | Source           | Comments |
+| ---------              | ----      | ----    | ------           | -------- |
+| Province               | adm1      |         | OCHA             | |
+| Province code          | adm1_code |         | OCHA             | |
+| District               | adm2      |         | OCHA             | |
+| District code          | adm2_code |         | OCHA             | |
+| Posto                  | adm3      |         | OCHA             | |
+| Posto code             | adm3_code |         | OCHA             | |
+| Population             | pop       |         | HRSL             | |
+| Area                   | area      | km2     |                  | |
+| Electricity access     | prov_elec |         | USAID            | Only at province level |
+| Poverty rate           | prov_pov  |         | OPHI             | Only at province level |
+| Health facilities      | health    |         | OCHA             | |
+| Schools                | schools   |         | OSM              | |
+
+### Add attributes
+The OCHA data is used as a base.
+First need to manually enter the electricity access figures from USAID, and OPHI's MPI (Multidimensional Poverty Index) into the Province (adm1) layer.
+Add these as fields `prov_elec` and `prov_pov` and save the file.
+
+Then use the script:
+```bash
+./scripts/admin_attributes.py
+```
+
 ## Clusters
 ### Creating clusters
 The command below runs a script that does the following steps, which can also be run in QGIS:
@@ -101,15 +129,18 @@ The command below runs a script that does the following steps, which can also be
 6. Multipart to singlepart
 
 ```bash
-./scripts/make_clusters_manual.py
+./scripts/make_clusters.py
 ```
 
 ### Attributes to add to clusters
 | Attribute              | Name      | Unit    | Source           | Comments |
 | ---------              | ----      | ----    | ------           | -------- |
 | Province               | adm1      |         | OCHA             | |
+| Province code          | adm1_code |         | OCHA             | |
 | District               | adm2      |         | OCHA             | |
+| District code          | adm2_code |         | OCHA             | |
 | Posto                  | adm3      |         | OCHA             | |
+| Posto code             | adm3_code |         | OCHA             | |
 | Village                | village   |         | IOM Settlements  | |
 | Latitude               | lat       | deg     |                  | |
 | Longitude              | lon       | deg     |                  | |
@@ -132,12 +163,14 @@ The command below runs a script that does the following steps, which can also be
 | Poverty rate           | poverty   |         |                  | |
 | Markets                | markets   |         |                  | |
 | Telecom towers         | telecom   |         |                  | no source, RTM says FUNAE |
+| Electricity access     | prov_elec |         | USAID            | Only at province level |
+| Poverty rate           | prov_pov  |         | OPHI             | Only at province level |
 
 
 ### Add attributes
 Run this script:
 ```bash
-./scripts/cluster_features.py all
+./scripts/cluster_attributes.py all
 ```
 
 Can also run with names of features to add instead of all, e.g.:
@@ -171,31 +204,6 @@ Then for distance:
 4. Zonal statistics to get Minimum value from distance raster into clusters geometry.
 5. Create new column and multiply by 100 to get from degrees to km and convert to integer.
 
-## Province, district, posto aggregates
-### Attributes to add
-These need to be added separately to province, district and posto layers. Use OCHA layers as base.
-
-- [x] Population: calculate from latest WorldPop
-- [x] Households: divide above by 5
-- [x] Area: calculate in QGIS
-- [x] Electricity access: from USAID and official numbers
-- [x] Poverty rate: from OPHI data
-- [x] Schools: count sites in QGIS
-- [x] Health site: count in QGIS
-
-### Population and households
-Use Zonal statistics with Worldpop, then convert to integer. For households, divide by 5 then convert to integer.
-
-### Area
-In field calculator, use `$area / 1e6` as integer.
-
-### Schools and health sites
-OCHA for health and OSM for schools. Use QGIS `Count points in polygon`.
-
-### Poverty and electricity access
-Manually enter into ADM1 layer. Use OPHI's MPI (Multidimensional Poverty Index) for poverty.
-
-Then use QGIS `Join attributes by field value` on `ADM1_PCODE` to get into districts and postos.
 
 # TODO
 - Add GHI, demand, score for each cluster
