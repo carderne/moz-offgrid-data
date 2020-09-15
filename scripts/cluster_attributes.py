@@ -15,6 +15,8 @@ from scipy import ndimage
 
 root = Path(__file__).resolve().parents[1]
 data = root / "data"
+start_file = root / "clusters/clu-man.gpkg"
+clu_file = root / "clusters/clu-man-feat.gpkg"
 
 
 def raster_stats(clu, raster, op):
@@ -34,9 +36,16 @@ def vector_dist(clu, vector, raster_like):
     clu = clu.to_crs(crs=crs)
     vector = gpd.read_file(vector)
     vector = vector.to_crs(crs=crs)
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        vector = vector.loc[vector["geometry"].length > 0]
+        if vector.geometry.type.iloc[0] == "Point":
+            # Bufer to convert points to polygons
+            # Rasterize doesn't work with points
+            vector.geometry = vector.geometry.buffer(0.001)
+        elif "String" in vector.geometry.type.iloc[0]:
+            vector = vector.loc[vector["geometry"].length > 0]
+
     grid_raster = rasterize(
         vector.geometry,
         out_shape=shape,
@@ -53,6 +62,7 @@ def vector_dist(clu, vector, raster_like):
 
 
 def count_sites(clu, sites):
+    sites = gpd.read_file(sites)
     col = []
     for i, poly in clu.iterrows():
         num_sites = 0
@@ -79,6 +89,7 @@ def area(clu):
     col = col.fillna(0).round(3)
     clu["area"] = col
     clu["popd"] = clu["pop"] / clu["area"]
+    clu["popd"] = clu.popd.fillna(0).round(0)
     return clu
 
 
@@ -95,7 +106,7 @@ def travel(clu):
     travel_file = data / "accessibility/acc_50k.tif"
     col = raster_stats(clu, travel_file, op="median")
     col = col.fillna(col.median()).round(0) / 60
-    clu["travel"] = col
+    clu["travel"] = col.round(2)
     return clu
 
 
@@ -124,20 +135,43 @@ def grid(clu):
     return clu
 
 
+def cityd(clu):
+    raster_like = data / "viirs/viirs70.tif"
+    city_file = data / "main_cities/main_cities_filtered.gpkg"
+    col = vector_dist(clu, city_file, raster_like)
+    col = col.fillna(0) * 100  # deg to km
+    col = col.round(0)
+    clu["cityd"] = col
+    return clu
+
+
 def admin(clu):
-    adm_file = data / "moz_adm/moz_admbnda_adm3_ine_20190607.shp"
+    adm_file = root / "admin" / "adm3.gpkg"
     adm = gpd.read_file(adm_file)
-    adm = adm[["ADM1_PT", "ADM2_PT", "ADM3_PT", "geometry"]]
-    adm.columns = ["adm1", "adm2", "adm3", "geometry"]
+    cols = [
+        "adm1",
+        "adm1_code",
+        "adm2",
+        "adm2_code",
+        "adm3",
+        "adm3_code",
+        "prov_elec",
+        "prov_pov",
+    ]
+    adm = adm[cols + ["geometry"]]
+    clu = clu.drop(columns=cols, errors="ignore")
     clu = gpd.sjoin(clu, adm, how="left", op="intersects")
-    clu = clu.drop(columns=["index_right"])
+    clu["Idx"] = clu.index
+    clu = clu.reset_index().drop_duplicates(subset=["Idx"], keep="first")
+    clu = clu.drop(columns=["index_right", "Idx"])
+    clu = clu.loc[~clu.adm1.isna()]
     return clu
 
 
 def urban(clu):
     urban_file = data / "ghsl/GHS_SMOD.tif"
     col = raster_stats(clu, urban_file, "majority")
-    col.fillna(11)
+    col = col.fillna(11)
     clu["urban"] = col
     return clu
 
@@ -145,23 +179,21 @@ def urban(clu):
 def lonlat(clu):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        clu["lon"] = clu.geometry.centroid.x
-        clu["lat"] = clu.geometry.centroid.y
+        clu["lon"] = clu.geometry.centroid.x.round(5)
+        clu["lat"] = clu.geometry.centroid.y.round(5)
     return clu
 
 
 def health(clu):
     health_file = data / "health_facilities/mozambique-healthfacilities.shp"
-    health = gpd.read_file(health_file)
-    col = count_sites(clu, health)
+    col = count_sites(clu, health_file)
     clu["health"] = col
     return clu
 
 
 def schools(clu):
     schools_file = data / "osm/osm-schools.gpkg"
-    schools = gpd.read_file(schools_file)
-    col = count_sites(clu, schools)
+    col = count_sites(clu, schools_file)
     clu["schools"] = col
     return clu
 
@@ -169,7 +201,7 @@ def schools(clu):
 def agri(clu):
     agri_file = data / "ndvi-proc/daily-fft-6bands.tif"
     col = raster_stats(clu, agri_file, "mean")
-    col = col.fillna(0)
+    col = col.fillna(0).round(0)
     clu["agri"] = col
     return clu
 
@@ -177,15 +209,52 @@ def agri(clu):
 def emissions(clu):
     no2_file = data / "no2/no2_moz.tif"
     col = raster_stats(clu, no2_file, "max")
-    col = col.fillna(0)
+    col = col.fillna(0).round(3)
     clu["emissions"] = col
     return clu
 
 
-def main(which):
-    clu_file = root / "clusters/clu-man-feat.gpkg"
-    clu = gpd.read_file(clu_file)
+def clean(clu):
+    i32 = "int32"
+    f32 = "float32"
+    ob = "object"
+    clu["fid"] = clu.index
+    clu = clu.astype(
+        {
+            "fid": i32,
+            "pop": i32,
+            "ntl": f32,
+            "travel": f32,
+            "gdp": i32,
+            "area": f32,
+            "lon": f32,
+            "lat": f32,
+            "grid": f32,
+            "adm3": ob,
+            "adm2": ob,
+            "adm1": ob,
+            "adm1_code": ob,
+            "adm2_code": ob,
+            "adm3_code": ob,
+            # "village": ob,
+            "urban": i32,
+            # "city": ob,
+            "cityd": i32,
+            "hh": i32,
+            "popd": i32,
+            "elec": i32,
+            "health": i32,
+            "schools": i32,
+            "prov_elec": i32,
+            "prov_pov": i32,
+            "agri": i32,
+            "emissions": f32,
+        }
+    )
+    return clu
 
+
+def main(which, scratch=False):
     if which == "all":
         fn_list = [
             pop,
@@ -206,12 +275,23 @@ def main(which):
         which = which.split(",")
         fn_list = [globals()[w] for w in which]
 
+    if scratch == "scratch":
+        print("Starting from scratch")
+        in_file = start_file
+    else:
+        print("Continuing with -feat file")
+        in_file = clu_file
+
+    clu = gpd.read_file(in_file)
     for func in fn_list:
         print("Doing", func.__name__)
         clu = func(clu)
+
+    print("Saving")
     clu.to_file(clu_file)
 
 
 if __name__ == "__main__":
     which = sys.argv[1]
-    main(which)
+    scratch = sys.argv[2] if len(sys.argv) > 2 else False
+    main(which, scratch)

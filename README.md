@@ -90,6 +90,16 @@ Script `download_no2.py` will download a single maximum annual value of NO2 for 
 
 Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
 
+### Add distance to cities
+Using [this Wikipedia article](https://en.wikipedia.org/wiki/List_of_cities_in_Mozambique_by_population) with the following list of the 17 largest cities in Mozambique:
+
+With the OCHA Main Cities dataset, use the following filter query in QGIS to get the selected cities:
+```
+"TOPONIMO" IN ('Cidade da Matola', 'Maputo', 'Nampula', 'Beira', 'Chimoio',
+    'Quelimane', 'Tete', 'Cidade de Nacala', 'Lichinga', 'Pemba', 'Mocuba',
+    'Gurué', 'Xai-Xai', 'Maxixe', 'Angoche', 'Inhambane', 'Cuamba')
+```
+
 ## Administrative layers
 ### Attributes to add
 
@@ -141,7 +151,7 @@ The command below runs a script that does the following steps, which can also be
 | District code          | adm2_code |         | OCHA             | |
 | Posto                  | adm3      |         | OCHA             | |
 | Posto code             | adm3_code |         | OCHA             | |
-| Village                | village   |         | IOM Settlements  | |
+| Settlement             | name      |         | IOM Settlements  | |
 | Latitude               | lat       | deg     |                  | |
 | Longitude              | lon       | deg     |                  | |
 | Area                   | area      | km2     |                  | |
@@ -170,47 +180,25 @@ The command below runs a script that does the following steps, which can also be
 ### Add attributes
 Run this script:
 ```bash
-./scripts/cluster_attributes.py all
+./scripts/cluster_attributes.py all scratch
 ```
 
-Can also run with names of features to add instead of all, e.g.:
+Can also run with names of features to add instead of all. If `scratch` is included, it starts from the base clusters with no attributes, otherwise it reads in the file with attributes already added, and will overwrite attributes as needed.
 ```bash
 ./scripts/cluster_features.py pop,ntl
 ```
 
-### Add village names
-Using IOM settlements data. In QGIS use "Voronoi polygons" with settlements, 10% buffer.
+### Manually add settlement names
+1. Using IOM settlements data for settlements.
+2. In QGIS use `Voronoi polygons` with settlements, 30% buffer.
+3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "Sett_Name"; join type: first located; discard records: yes.
+4. Rename new field to `name`.
 
-Then with clusters, "Join attributes by location". Select intersects and within. Join type: first located. Tick Discard records. Choose "Sett_Name" field.
-
-
-### Add distance to cities
-Using [this Wikipedia article](https://en.wikipedia.org/wiki/List_of_cities_in_Mozambique_by_population) with the following list of the 17 largest cities in Mozambique:
-
-With the OCHA Main Cities dataset, use the following filter query in QGIS to get the selected cities:
-```
-"TOPONIMO" IN ('Cidade da Matola', 'Maputo', 'Nampula', 'Beira', 'Chimoio',
-    'Quelimane', 'Tete', 'Cidade de Nacala', 'Lichinga', 'Pemba', 'Mocuba',
-    'Gurué', 'Xai-Xai', 'Maxixe', 'Angoche', 'Inhambane', 'Cuamba')
-```
-
-Then use Voronoi polygons (buffer at least 30%) and Join by location (as for village names) to get nearest city for each cluster.
-
-Then for distance:
-1. Re-export filtered 17 cities as separate file.
-1. Ensure filtered cities and clusters are in the same CRS (coordinate reference system).
-2. Rasterize cities data. Burn value: 1. Size units: georeferenced. Width/height: 0.1 (degrees). Output extent: from clusters layer.
-3. Raster proximity. Target values: 1. Distance units: georeferenced.
-4. Zonal statistics to get Minimum value from distance raster into clusters geometry.
-5. Create new column and multiply by 100 to get from degrees to km and convert to integer.
-
+### Manually nearest city name
+1. Use filtered cities file.
+2. Use `Voronoi polygons` with cities, 30% buffer.
+3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "TOPONIMO"; join type: first located; discard records: yes. Rename new field to `name`.
+4. Rename new field to `city`.
 
 # TODO
-- Add GHI, demand, score for each cluster
-- Pre-filter clusters to  pop>100
-- Rerun gridfinder
-- Try manual clustering approach
-- Fix auto-adding features to clusters
-- Add pop-density filter to webmap
-- Don't round area too much! At least two decimal places. Creates weird pop density artefacts.
-- Exclude HV from proximity. Exclude gridfinder? Show separately??
+- Add demand, score for each cluster
