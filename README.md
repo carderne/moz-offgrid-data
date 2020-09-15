@@ -40,13 +40,13 @@ Google Earth Engine scripts are in [this EE repo](https://code.earthengine.googl
 ### Extracting OSM features
 
 [Schools](https://wiki.openstreetmap.org/wiki/Education_features)
-```
+```bash
 osmfilter moz.o5m --keep="amenity=school" | \
     ogr2ogr -f GPKG osm-schools.gpkg /vsistdin/ multipolygons points
 ```
 
 Then use the script to merge the polygons and points into a single later:
-```
+```bash
 ./scripts/merge_centroids.py data/osm/osm-schools.gpkg data/osm/osm-schools.gpkg
 ```
 
@@ -58,7 +58,7 @@ osmfilter moz.o5m --keep="healthcare=*" | \
 Based on examination, the OCHA health site data is much more complete, and includes most of the OSM sites, so the OSM data will not be used for health sites.
 
 Grid lines:
-```
+```bash
 osmfilter moz.o5m --keep="power=line" | ogr2ogr -f GPKG osm-grid.gpkg /vsistdin/ lines
 ```
 
@@ -81,14 +81,12 @@ Urban codes are as follows:
 ### Agriculture
 A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
 
-Script `download_ndvi.py` will download a timeseries of NDVI data. Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
+Script `./scripts/ee_download.py ndvi` will download a timeseries of NDVI data. Can also download MODIS NDVI data with `./scripts/ee_download.py modis` Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
 
-Currently just using 3rd component (counting from 1) of Fourier transform. Use `Zonal statistics` to get mean value into clusters. Multiply by 100.
+Currently just using 3rd component (counting from 1) of Fourier transform.
 
 ### Emissions
-Script `download_no2.py` will download a single maximum annual value of NO2 for Mozambique.
-
-Use `Zonal statistics` to get max value into clusters. Multiply by 100,000.
+Script `./scripts/ee_download.py no2` will download a single maximum annual value of NO2 for Mozambique.
 
 ### Add distance to cities
 Using [this Wikipedia article](https://en.wikipedia.org/wiki/List_of_cities_in_Mozambique_by_population) with the following list of the 17 largest cities in Mozambique:
@@ -175,7 +173,31 @@ The command below runs a script that does the following steps, which can also be
 | Telecom towers         | telecom   |         |                  | no source, RTM says FUNAE |
 | Electricity access     | prov_elec |         | USAID            | Only at province level |
 | Poverty rate           | prov_pov  |         | OPHI             | Only at province level |
+| Demand                 | demand    | kW      |                  | |
 
+Demand is calculated according to the following formula:
+```
+demand_pp   = 0.0852   # kW/person
+intercept   = -12.44   # kW
+health_mult = 20       # multiple of per person demand
+school_mult = 20       # multiple of per person demand
+
+demand = (
+    pop * demand_pp
+    + health * health_mult * demand_pp
+    + schools * school_mult * demand_pp
+    + intercept
+)
+```
+
+The cluster score is calculated using a z-score and weighting for each of the following attributes:
+| Attributes | Weighting |
+| ---------- | --------- |
+| pop        | 0.4       |
+| popd       | 0.1       |
+| grid       | 0.3       |
+| health     | 0.1       |
+| schools    | 0.1       |
 
 ### Add attributes
 Run this script:
@@ -199,6 +221,3 @@ Can also run with names of features to add instead of all. If `scratch` is inclu
 2. Use `Voronoi polygons` with cities, 30% buffer.
 3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "TOPONIMO"; join type: first located; discard records: yes. Rename new field to `name`.
 4. Rename new field to `city`.
-
-# TODO
-- Add demand, score for each cluster

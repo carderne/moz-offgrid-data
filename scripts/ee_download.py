@@ -108,7 +108,7 @@ def ndvi():
     )
 
 
-def modis_ndvi():
+def modis():
     """
     Download MODIS daily NDVI images
     https://developers.google.com/earth-engine/datasets/catalog/MODIS_MOD09GA_006_NDVI

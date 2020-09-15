@@ -201,6 +201,7 @@ def schools(clu):
 def agri(clu):
     agri_file = data / "ndvi-proc/daily-fft-6bands.tif"
     col = raster_stats(clu, agri_file, "mean")
+    col = col * 100
     col = col.fillna(0).round(0)
     clu["agri"] = col
     return clu
@@ -209,48 +210,55 @@ def agri(clu):
 def emissions(clu):
     no2_file = data / "no2/no2_moz.tif"
     col = raster_stats(clu, no2_file, "max")
-    col = col.fillna(0).round(3)
+    col = col * 1e5
+    col = col.fillna(0).round(0)
     clu["emissions"] = col
     return clu
 
 
-def clean(clu):
-    i32 = "int32"
-    f32 = "float32"
-    ob = "object"
-    clu["fid"] = clu.index
-    clu = clu.astype(
-        {
-            "fid": i32,
-            "pop": i32,
-            "ntl": f32,
-            "travel": f32,
-            "gdp": i32,
-            "area": f32,
-            "lon": f32,
-            "lat": f32,
-            "grid": f32,
-            "adm3": ob,
-            "adm2": ob,
-            "adm1": ob,
-            "adm1_code": ob,
-            "adm2_code": ob,
-            "adm3_code": ob,
-            # "village": ob,
-            "urban": i32,
-            # "city": ob,
-            "cityd": i32,
-            "hh": i32,
-            "popd": i32,
-            "elec": i32,
-            "health": i32,
-            "schools": i32,
-            "prov_elec": i32,
-            "prov_pov": i32,
-            "agri": i32,
-            "emissions": f32,
-        }
+def demand(clu):
+    kwpp = 0.0852
+    intercept = -12.44
+    col = (
+        clu["pop"] * kwpp
+        + clu["health"] * 20 * kwpp
+        + clu["schools"] * 20 * kwpp
+        + intercept
     )
+    col.loc[col < 1] = 1
+    col = col.fillna(1).round(0)
+    clu["demand"] = col
+    return clu
+
+
+def score(clu):
+    attrs = {
+        "pop": 0.4,
+        "popd": 0.1,
+        "grid": 0.5,
+        "health": 0.1,
+        "schools": 0.1,
+    }
+    temp = pd.DataFrame()
+    for attr, weight in attrs.items():
+
+        col = clu[attr]
+        z = (col - col.mean()) / col.std()
+        z = (z * 2.5 + 5) * weight
+        z.loc[z < 0] = 0
+        temp[f"{attr}_score"] = z
+
+    for c in temp.columns:
+        clu[c] = temp[c]
+    clu["score"] = temp.sum(axis=1) / len(attrs)
+    clu["score"] = clu["score"].fillna(0).round(3)
+
+    clu["cat"] = 1
+    clu.loc[clu.score > clu.score.quantile(0.2), "cat"] = 2
+    clu.loc[clu.score > clu.score.quantile(0.4), "cat"] = 3
+    clu.loc[clu.score > clu.score.quantile(0.6), "cat"] = 4
+    clu.loc[clu.score > clu.score.quantile(0.8), "cat"] = 5
+
     return clu
 
 
@@ -263,6 +271,7 @@ def main(which, scratch=False):
             travel,
             gdp,
             grid,
+            cityd,
             admin,
             urban,
             lonlat,
@@ -270,6 +279,8 @@ def main(which, scratch=False):
             schools,
             agri,
             emissions,
+            demand,
+            score,
         ]
     else:
         which = which.split(",")
