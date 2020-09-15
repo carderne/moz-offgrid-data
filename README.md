@@ -1,6 +1,32 @@
 # moz-offgrid-data
 Overview of data sources and methods for Mozambique Off-Grid data analysis.
 
+The documentation below describes all steps necessary to replicate the data outputs used in the Mozambique Off-Grid visualization tool.
+
+## Requirements for reproduction
+The data was processed using a machine with 8 GB of physical memory and at least 100 GB of free hard drive space.
+
+All processing was done using the following software stack:
+```
+Ubuntu 20.04
+Python 3.7.3
+GDAL 3.0.4
+QGIS 3.10.4
+```
+
+The following Python libraries are required, at a minimum:
+```
+rasterio
+geopandas
+rtree
+numpy
+pandas
+rasterstats
+scipy
+ee
+geetools
+```
+
 ## Data sources
 | Type | Source | License |
 | ---- | ------ | ------- |
