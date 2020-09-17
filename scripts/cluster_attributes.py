@@ -113,12 +113,11 @@ def travel(clu):
 def gdp(clu):
     gdp_file = data / "gdp/GDP.tif"
     col = raster_stats(clu, gdp_file, op="sum")
-    col = col.fillna(col.median()).round(0) / 1000
-    clu["gdp"] = col
-    max_gdp = clu.sort_values(by="pop", ascending=False).iloc[0]["gdp"]
-    col.loc[col > max_gdp] = max_gdp
-    clu["gdp"] = col
-    clu["gdp"] = clu["gdp"] / clu["pop"]
+    # convert to USD and double to account for GDP growth
+    col = col.fillna(col.median()) * 1000 * 2
+    clu["gdp"] = col / clu["pop"]
+    max_gdp = float(clu.loc[clu["pop"] == clu["pop"].max(), "gdp"])
+    clu.loc[clu["gdp"] > max_gdp, "gdp"] = max_gdp
     clu["gdp"] = clu["gdp"].round(3)
     return clu
 
@@ -170,7 +169,7 @@ def admin(clu):
 
 def urban(clu):
     urban_file = data / "ghsl/GHS_SMOD.tif"
-    col = raster_stats(clu, urban_file, "majority")
+    col = raster_stats(clu, urban_file, "max")
     col = col.fillna(11)
     clu["urban"] = col
     return clu

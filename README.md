@@ -183,17 +183,17 @@ The command below runs a script that does the following steps, which can also be
 | Households             | hh        |         | HRSL             | |
 | Population density     | popd      | pop/km2 | HRSL             | |
 | Urban type             | urban     |         | GHSL SMOD        | |
-| Nearest city           | city      |         | OCHA Main Cities | redo, all sorts of names present outside of 17 selected |
+| Nearest city           | city      |         | OCHA Main Cities | |
 | Nearest city distance  | cityd     | km      | OCHA Main Cities | |
-| Travel time to city    | travel    | hours   | JRC              | still need to divide by 60 and keep as float |
+| Travel time to city    | travel    | hours   | JRC              | |
 | Health facilities      | health    |         | OCHA             | |
 | Schools                | schools   |         | OSM              | |
-| Grid distance          | grid      | km      | gridfinder/OSM   | had to divide by 100 and keep as float |
+| Grid distance          | grid      | km      | gridfinder/OSM   | |
 | Electricity access     | elec      |         | gridfinder/OSM   | |
 | Agricultural indicator | agri      |         | NDVI             | |
 | Emissions              | emissions |         | NO2              | |
 | NTL                    | ntl       |         | VIIRS            | |
-| GDP                    | gdp       | USD/cap | UNEP             | not sure about units, seems like clusterize scale factor not working |
+| GDP                    | gdp       | USD/cap | UNEP             | |
 | Poverty rate           | poverty   |         |                  | |
 | Markets                | markets   |         |                  | |
 | Telecom towers         | telecom   |         |                  | no source, RTM says FUNAE |
@@ -242,7 +242,7 @@ Can also run with names of features to add instead of all. If `scratch` is inclu
 3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "Sett_Name"; join type: first located; discard records: yes.
 4. Rename new field to `name`.
 
-### Manually nearest city name
+### Manually add nearest city name
 1. Use filtered cities file.
 2. Use `Voronoi polygons` with cities, 30% buffer.
 3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "TOPONIMO"; join type: first located; discard records: yes. Rename new field to `name`.
