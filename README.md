@@ -1,5 +1,7 @@
 # moz-offgrid-data
-Overview of data sources and methods for Mozambique Off-Grid data analysis.
+Overview of data sources and methods for Mozambique Off-Grid Energy project.
+
+The frontend for this project is in a separate repository: [moz-offgrid-viz](https://github.com/carderne/moz-offgrid-viz).
 
 The documentation below describes all steps necessary to replicate the data outputs used in the Mozambique Off-Grid visualization tool.
 
