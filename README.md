@@ -249,3 +249,30 @@ Can also run with names of features to add instead of all. If `scratch` is inclu
 2. Use `Voronoi polygons` with cities, 30% buffer.
 3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "TOPONIMO"; join type: first located; discard records: yes. Rename new field to `name`.
 4. Rename new field to `city`.
+
+## Advanced analysis
+### Recent satellite imagery
+Download recent Copernicus Sentinel-2 images for each cluster:
+```bash
+./scripts/s2_imagery.py
+```
+
+The files will download to Google Drive.
+
+Mosaic into single tif:
+```bash
+gdal_merge.py -co COMPRESS=LZW -co BIGTIFF=YES -a_nodata 0 -o s2_mosaic.tif images/*.tif
+gdal_translate -co COMPRESS=LZW -scale 0 3000 0 255 -ot Byte s2_mosaic.tif s2_mosaic_byte.tif
+```
+
+Convert to MBTiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles):
+```bash
+pip install rio-mbtiles
+rio mbtiles s2_mosaic_byte.tif -o s2_mosaic_byte_rio_8_14.mbtiles --zoom-levels 8..14 -f JPEG --title s2 --dst-nodata 0
+```
+
+### Detecting agriculture and increasing urbanization
+Scripts on Google Earth Engine for loading data and local notebooks for processing.
+
+### Gridfinder
+Please see the [gridfinder](https://github.com/carderne/gridfinder/) and [website](https://gridfinder.org) for details on using gridfinder.

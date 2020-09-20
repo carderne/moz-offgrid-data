@@ -4,8 +4,12 @@
 Download satellite imageryvia Google Earth Engine
 """
 
+import time
+import warnings
 import sys
+from pathlib import Path
 
+import geopandas as gpd
 import ee
 from geetools.batch import Export
 
@@ -17,16 +21,56 @@ loc = "moz"
 roi = ee.Geometry.Rectangle([28, -28, 43, -9])  # Mozambique
 
 
+def s2(start_from=0):
+    root = Path(__file__).resolve().parents[1]
+    clu = gpd.read_file(root / "clusters/clu-man-feat.gpkg")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        clu.geometry = clu.geometry.buffer(0.005)
+        clu["gs"] = clu.geometry.centroid.buffer(0.025)
+        clu.loc[clu.to_crs("epsg:5629").geometry.area > 4e7, "geometry"] = clu["gs"]
+        clu = clu.drop(columns=["gs"])
+    total_roi = ee.Geometry.Rectangle(clu.total_bounds.tolist())
+
+    prod = "COPERNICUS/S2_SR"
+    start_date = "2020-08-01"
+    end_date = "2020-12-31"
+
+    ic = (
+        ee.ImageCollection(prod)
+        .filterBounds(total_roi)
+        .filterDate(start_date, end_date)
+        .select(["B4", "B3", "B2"])
+    )
+
+    tot = len(clu)
+    bounds = clu.bounds
+    for i in clu.index:
+        if i < start_from:
+            continue
+        print(i, "/", tot, "  -  ", clu.loc[i, "name"])
+        roi = ee.Geometry.Rectangle(bounds.loc[i].to_list())
+        img = ic.filterBounds(roi).sort("CLOUDY_PIXEL_PERCENTAGE").first().clip(roi)
+        ee.batch.Export.image.toDrive(
+            image=img,
+            description=f"{i}",
+            scale=10,
+            folder="mozam_s2_full",
+            fileNamePrefix=f"mozam_s2_{i}",
+        ).start()
+        time.sleep(2)
+
+
 def viirs():
     """
     VIIRS NTL imagery
     """
 
-    viirs = "NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG"
+    prod = "NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG"
     date_sta = "2019-01-01"
     date_end = "2020-06-04"
 
-    ic = ee.ImageCollection(viirs).filterBounds(roi).filterDate(date_sta, date_end)
+    ic = ee.ImageCollection(prod).filterBounds(roi).filterDate(date_sta, date_end)
     Export.imagecollection.toDrive(
         collection=ic,
         folder=f"ntl_{loc}",
@@ -46,14 +90,14 @@ def no2():
     Ref: https://gis.stackexchange.com/a/312566
     """
 
-    no2 = "COPERNICUS/S5P/NRTI/L3_NO2"
+    prod = "COPERNICUS/S5P/NRTI/L3_NO2"
     bands = ["tropospheric_NO2_column_number_density"]
 
     date_sta = "2019-01-01"
     date_end = "2020-01-01"
 
     img = (
-        ee.ImageCollection(no2)
+        ee.ImageCollection(prod)
         .filterBounds(roi)
         .filterDate(date_sta, date_end)
         .select(bands)
@@ -75,6 +119,7 @@ def ndvi():
     Ref: https://gis.stackexchange.com/a/312566
     """
 
+    prod = "COPERNICUS/S2_SR"
     start = ee.Date.fromYMD(2019, 1, 1)
     weeks = ee.List.sequence(0, 51)
     startDates = weeks.map(lambda d: start.advance(d, "week"))
@@ -86,7 +131,7 @@ def ndvi():
         start = ee.Date(m)
         end = start.advance(1, "week")
         return (
-            ee.ImageCollection("COPERNICUS/S2_SR")
+            ee.ImageCollection(prod)
             .filterBounds(roi)
             .filterDate(ee.DateRange(start, end))
             .map(get_ndvi)
@@ -114,10 +159,10 @@ def modis():
     https://developers.google.com/earth-engine/datasets/catalog/MODIS_MOD09GA_006_NDVI
     """
 
-    modis = "MODIS/MOD09GA_006_NDVI"
+    prod = "MODIS/MOD09GA_006_NDVI"
     date_sta = "2019-01-01"
     date_end = "2020-01-01"
-    ic = ee.ImageCollection(modis).filterBounds(roi).filterDate(date_sta, date_end)
+    ic = ee.ImageCollection(prod).filterBounds(roi).filterDate(date_sta, date_end)
 
     Export.imagecollection.toDrive(
         collection=ic,
