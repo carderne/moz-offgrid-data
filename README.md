@@ -16,17 +16,9 @@ GDAL 3.0.4
 QGIS 3.10.4
 ```
 
-The following Python libraries are required, at a minimum:
+The required Python libraries are listed in `requirements.txt` and can be installed with:
 ```
-rasterio
-geopandas
-rtree
-numpy
-pandas
-rasterstats
-scipy
-ee
-geetools
+pip install -r requirements.txt
 ```
 
 ## Data sources
@@ -261,18 +253,35 @@ The files will download to Google Drive.
 
 Mosaic into single tif:
 ```bash
+./scripts/s2_reproj.sh ./data/s2/images/
 gdal_merge.py -co COMPRESS=LZW -co BIGTIFF=YES -a_nodata 0 -o s2_mosaic.tif images/*.tif
-gdal_translate -co COMPRESS=LZW -scale 0 3000 0 255 -ot Byte s2_mosaic.tif s2_mosaic_byte.tif
+gdal_translate -co COMPRESS=LZW -scale 0 2000 0 255 -ot Byte s2_mosaic.tif s2_mosaic_byte.tif
 ```
 
 Convert to MBTiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles):
 ```bash
 pip install rio-mbtiles
-rio mbtiles s2_mosaic_byte.tif -o s2_mosaic_byte_rio_8_14.mbtiles --zoom-levels 8..14 -f JPEG --title s2 --dst-nodata 0
+rio mbtiles s2_mosaic_byte.tif -o s2_mosaic_byte_rio_5_14.mbtiles --zoom-levels 5..14 -f JPEG --title s2 --src-nodata 0 --dst-nodata 0 -j 4
 ```
 
-### Detecting agriculture and increasing urbanization
-Scripts on Google Earth Engine for loading data and local notebooks for processing.
+### Detecting agriculture
+Use the script to download daily MODIS NDVI data:
+```
+./scripts/ee_download.py modis
+```
+
+Can also download Sentinel-2 NDVI data, which is a much higher spatial resolution, but much lower (weekly) temporal resolution:
+```
+./scripts/ee_download.py ndvi
+```
+
+Then use the script to process this using the Fourier Transform to get the relative amount of change within different seasons as an indication of agricultural activity. This analysis follows the paper `Cropland area estimates using Modis NDVI time series  in the state of Mato Grosso, Brazil` by Daniel de Castro Victoria et al., [available here](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
+```
+./scripts/process_ndvi.py data/ndvi-daily/ data/ndvi-proc/
+```
+
+### Detecting urban growth
+empty
 
 ### Gridfinder
 Please see the [gridfinder](https://github.com/carderne/gridfinder/) and [website](https://gridfinder.org) for details on using gridfinder.

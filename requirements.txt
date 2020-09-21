@@ -1,0 +1,9 @@
+rasterio
+geopandas
+rtree
+numpy
+pandas
+rasterstats
+scipy
+ee
+geetools
