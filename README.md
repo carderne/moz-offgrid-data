@@ -98,13 +98,6 @@ Urban codes are as follows:
 23: Dense town
 30: City
 
-### Agriculture
-A [reference paper](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
-
-Script `./scripts/ee_download.py ndvi` will download a timeseries of NDVI data. Can also download MODIS NDVI data with `./scripts/ee_download.py modis` Notebook `ndvi_analysis.ipynb` used to calculate Fourier transform and identify zones of agricultural productivity.
-
-Currently just using 3rd component (counting from 1) of Fourier transform.
-
 ### Emissions
 Script `./scripts/ee_download.py no2` will download a single maximum annual value of NO2 for Mozambique.
 
@@ -117,6 +110,60 @@ With the OCHA Main Cities dataset, use the following filter query in QGIS to get
     'Quelimane', 'Tete', 'Cidade de Nacala', 'Lichinga', 'Pemba', 'Mocuba',
     'Gurué', 'Xai-Xai', 'Maxixe', 'Angoche', 'Inhambane', 'Cuamba')
 ```
+
+## Advanced analysis
+### Copernicus satellite imagery
+Download recent Copernicus Sentinel-2 images for each cluster:
+```bash
+./scripts/s2_imagery.py
+```
+
+The files will download to Google Drive.
+
+Mosaic into single tif:
+```bash
+./scripts/s2_reproj.sh ./data/s2/images/
+gdal_merge.py -co COMPRESS=LZW -co BIGTIFF=YES -a_nodata 0 -o s2_mosaic.tif images/*.tif
+
+# Then because the output from gdal_merge is for some reason unnecessary large
+gdal_translate -co COMPRESS=LZW -ot Byte s2_mosaic.tif s2_mosaic_byte.tif
+```
+
+### Detecting agriculture
+Use the script to download daily MODIS NDVI data:
+```
+./scripts/ee_download.py modis
+```
+
+Can also download Sentinel-2 NDVI data, which is a much higher spatial resolution, but much lower (weekly) temporal resolution:
+```
+./scripts/ee_download.py ndvi
+```
+
+Then use the script to process this using the Fourier Transform to get the relative amount of change within different seasons as an indication of agricultural activity. This analysis follows the paper `Cropland area estimates using Modis NDVI time series  in the state of Mato Grosso, Brazil` by Daniel de Castro Victoria et al., [available here](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
+```
+./scripts/process_ndvi.py data/ndvi-daily/ data/ndvi-proc/
+```
+
+Currently this uses the NDVI values *within* the cluster, which of course limits its usefulness, as most agriculture will happen outside the cluster boundaries.
+
+### Detecting urban growth
+Use the script to run a simple machine learning classification of different land-cover types and download the results to Google Drive. Results are classified into the following classes: `undeveloped`, `farm`, `developed`, `water`. This is done using the labels I created at `scripts/ml_labels.geojson` which has around 70 labels for each of these land types. The script below uses these labels to train a machine learning model, and then uses that model to classify land cover types over the course of several years. As this is just a demonstration, these labels are neither very good quality, nor very many. Additionally, a smaller sample than possible of each year's imagery is used. Finally, this is only done over the few years of available S2 imagery, instead of using a longer time-series including other imagery sources.
+```
+# The argument 1000 is the spatial resolution in metres
+# Doing at 1000m (instead of native 10m) as this is simply a demonstration
+./scripts/ml_classify.py 1000
+```
+
+It may be necessary to clip the results to make them easier to work with:
+```
+gdal_translate -projwin 28 -9 43 -28 -ot Byte data/ml/cls_2019.tif data/ml/cls_2019_clip.tif
+```
+
+The chance is calculated along with the other attributes in the `scripts/cluster_attributes.py` script.
+
+### Gridfinder
+Please see the [gridfinder](https://github.com/carderne/gridfinder/) and [website](https://gridfinder.org) for details on using gridfinder.
 
 ## Administrative layers
 ### Attributes to add
@@ -185,6 +232,7 @@ The command below runs a script that does the following steps, which can also be
 | Grid distance          | grid      | km      | gridfinder/OSM   | |
 | Electricity access     | elec      |         | gridfinder/OSM   | |
 | Agricultural indicator | agri      |         | NDVI             | |
+| Growth                 | growth    |         | ML with S2 image | |
 | Emissions              | emissions |         | NO2              | |
 | NTL                    | ntl       |         | VIIRS            | |
 | GDP                    | gdp       | USD/cap | UNEP             | |
@@ -242,46 +290,3 @@ Can also run with names of features to add instead of all. If `scratch` is inclu
 3. Then use `Join attributes by location`. Input layer: clusters; join layer: voronoi; predicate: intersects; fields to add: "TOPONIMO"; join type: first located; discard records: yes. Rename new field to `name`.
 4. Rename new field to `city`.
 
-## Advanced analysis
-### Recent satellite imagery
-Download recent Copernicus Sentinel-2 images for each cluster:
-```bash
-./scripts/s2_imagery.py
-```
-
-The files will download to Google Drive.
-
-Mosaic into single tif:
-```bash
-./scripts/s2_reproj.sh ./data/s2/images/
-gdal_merge.py -co COMPRESS=LZW -co BIGTIFF=YES -a_nodata 0 -o s2_mosaic.tif images/*.tif
-gdal_translate -co COMPRESS=LZW -scale 0 2000 0 255 -ot Byte s2_mosaic.tif s2_mosaic_byte.tif
-```
-
-Convert to MBTiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles):
-```bash
-pip install rio-mbtiles
-rio mbtiles s2_mosaic_byte.tif -o s2_mosaic_byte_rio_5_14.mbtiles --zoom-levels 5..14 -f JPEG --title s2 --src-nodata 0 --dst-nodata 0 -j 4
-```
-
-### Detecting agriculture
-Use the script to download daily MODIS NDVI data:
-```
-./scripts/ee_download.py modis
-```
-
-Can also download Sentinel-2 NDVI data, which is a much higher spatial resolution, but much lower (weekly) temporal resolution:
-```
-./scripts/ee_download.py ndvi
-```
-
-Then use the script to process this using the Fourier Transform to get the relative amount of change within different seasons as an indication of agricultural activity. This analysis follows the paper `Cropland area estimates using Modis NDVI time series  in the state of Mato Grosso, Brazil` by Daniel de Castro Victoria et al., [available here](https://www.scielo.br/pdf/pab/v47n9/12.pdf).
-```
-./scripts/process_ndvi.py data/ndvi-daily/ data/ndvi-proc/
-```
-
-### Detecting urban growth
-empty
-
-### Gridfinder
-Please see the [gridfinder](https://github.com/carderne/gridfinder/) and [website](https://gridfinder.org) for details on using gridfinder.

@@ -198,7 +198,7 @@ def schools(clu):
 
 
 def agri(clu):
-    agri_file = data / "ndvi-proc/daily-fft-6bands.tif"
+    agri_file = data / "ndvi-proc/scored.tif"
     col = raster_stats(clu, agri_file, "mean")
     col = col * 100
     col = col.fillna(0).round(0)
@@ -206,10 +206,30 @@ def agri(clu):
     return clu
 
 
+def growth(clu):
+    grow_dir = data / "ml"
+    files = [f for f in grow_dir.iterdir() if f.suffix == ".tif"]
+    years = []
+    for f in files:
+        with rio.open(f) as ds:
+            aff = ds.transform
+            crs = ds.crs
+            arr = ds.read(1)
+        arr[arr != 2] = 0
+        proj = clu.to_crs(crs)
+        stats = zonal_stats(proj, arr, stats="count", nodata=0, affine=aff)
+        years.append(pd.Series([x["count"] for x in stats]))
+    col = years[0]
+    for y in years[1:]:
+        col = col - y
+    clu["growth"] = col
+    return clu
+
+
 def emissions(clu):
     no2_file = data / "no2/no2_moz.tif"
     col = raster_stats(clu, no2_file, "max")
-    col = col * 1e5
+    col = col * 1e6
     col = col.fillna(0).round(0)
     clu["emissions"] = col
     return clu
@@ -277,6 +297,7 @@ def main(which, scratch=False):
             health,
             schools,
             agri,
+            growth,
             emissions,
             demand,
             score,

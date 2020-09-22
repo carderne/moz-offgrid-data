@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Download satellite imageryvia Google Earth Engine
+Download satellite imagery via Google Earth Engine
 """
 
 import time
@@ -27,10 +27,6 @@ def s2(start_from=0):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         clu.geometry = clu.geometry.buffer(0.005)
-        clu = clu.loc[clu.to_crs("epsg:5629").geometry.area > 4e7]
-        # clu["gs"] = clu.geometry.centroid.buffer(0.025)
-        # clu.loc[clu.to_crs("epsg:5629").geometry.area > 4e7, "geometry"] = clu["gs"]
-        # clu = clu.drop(columns=["gs"])
     total_roi = ee.Geometry.Rectangle(clu.total_bounds.tolist())
 
     prod = "COPERNICUS/S2_SR"
