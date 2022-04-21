@@ -16,7 +16,8 @@ from scipy import ndimage
 root = Path(__file__).resolve().parents[1]
 data = root / "data"
 start_file = root / "clusters/clu-man.gpkg"
-clu_file = root / "clusters/clu-man-feat.gpkg"
+# clu_file = root / "clusters/clu-man-feat.gpkg"
+clu_file = root / "clusters/clu_NEW.geojson"
 
 
 def raster_stats(clu, raster, op):
@@ -124,7 +125,8 @@ def gdp(clu):
 
 def grid(clu):
     raster_like = data / "viirs/viirs70.tif"
-    grid_file = data / "grid/gridfinder_moz.gpkg"
+    # grid_file = data / "grid/gridfinder_moz.gpkg"
+    grid_file = data / "grid/grid_manual.geojson"
     col = vector_dist(clu, grid_file, raster_like)
     col = col.fillna(0) * 100  # deg to km
     col = col.round(2)

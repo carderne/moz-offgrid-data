@@ -51,6 +51,8 @@ pip install -r requirements.txt
 | Poverty | [OPHI Poverty Rate](https://data.humdata.org/dataset/mozambique-poverty-rate) |  	Creative Commons Attribution International |
 | Affordability | [USAID Power Africa surveys]() | |
 | Admin boundaries | [OCHA Admin Boundaries](https://data.humdata.org/dataset/mozambique-administrative-levels-0-3) | humanitarian use only |
+| Existing minigrids | Provided by EDM | |
+| Health centers | Provided by EDM | |
 
 ## Pre-processing data
 Scripts are in `/scripts`.
@@ -275,7 +277,7 @@ Run this script:
 
 Can also run with names of features to add instead of all. If `scratch` is included, it starts from the base clusters with no attributes, otherwise it reads in the file with attributes already added, and will overwrite attributes as needed.
 ```bash
-./scripts/cluster_features.py pop,ntl
+./scripts/cluster_attributes.py pop,ntl
 ```
 
 ### Manually add settlement names
